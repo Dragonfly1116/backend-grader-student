@@ -37,8 +37,19 @@ const fileUpload = upload.fields([  {name: 'output', maxCount: 10},
 
 const submitUpload = upload.single('submitfile')
 
+const updateSubmit = (req,res,next) => {
+  const {problem_name,email,score,pass,time,memory,compile,key} = JSON.parse(req.body.process)
+  Submit(problem_name,email,score,pass,time,memory,compile,req.dirfile+ '/' + req.namefile)
+    .then( result => {
+      req.user = result.result
+      next()
+    })
+    .catch(err => {
+      return res.status(500).json(err)
+    })
+}
 
-router.post('/submitfile', submitUpload,(req,res,next) => {
+router.post('/submitfile', submitUpload, updateSubmit ,(req,res,next) => {
   fs.readFile(req.dirfile + '/' + req.namefile, 'utf8', function(err, data) {  
     if (err) throw err;
     return res.status(200).json({name: req.dirfile+ '/' + req.namefile})
@@ -202,18 +213,6 @@ const Submit = (name,email,score,pass,time,memory,compile,key) => {
   })
 }
 
-const updateSubmit = (req,res,next) => {
-  const {problem_name,email,score,pass,time,memory,compile,key} = req.body.process
-  Submit(problem_name,email,score,pass,time,memory,compile,key)
-    .then( result => {
-      req.user = result.result
-      next()
-    })
-    .catch(err => {
-      return res.status(500).json(err)
-    })
-}
-
 const getLang = lang => {
   if(lang === 'C') 
       return 4
@@ -265,12 +264,13 @@ const getText = url => {
   })
 }
 
-router.post('/submission', updateSubmit , getFileSource , async (req,res,next) => {
-  const { _id, email } = req.user
+router.post('/submission', getFileSource , async (req,res,next) => {
+  try {
+  const email = req.body.user
   const { source_code } = req
   const { stdin, stdout, language,
           data, name } = req.body.submission
-  const { key } = req.body.process
+  const key = req.body.process
   const numTest = stdin.length
   if(numTest !== stdout.length)  return res.status(400).json('TestCase was Wrong! (Please contact admin.)')
 
@@ -298,6 +298,7 @@ router.post('/submission', updateSubmit , getFileSource , async (req,res,next) =
         } else if (result.status.description === 'Time Limit Exceeded') {
             WorseTime = Math.max(Number(result.time),WorseTime)
             WorseMem = Math.max(result.memory,WorseMem)
+            console.log('User: ' + email + ' Time Limit Exceed')
             isPass = false
             score += 'T'
         } else {
@@ -320,6 +321,11 @@ router.post('/submission', updateSubmit , getFileSource , async (req,res,next) =
   const result = await Submit(name,email,score,isPass,WorseTime,WorseMem,null,key)
   console.log('User: ' + email + ' Grading Success')
   return res.status(200).json(result.sb)
+  }
+  catch (err) {
+    console.log('ERROR FROM TRY CATCH ' + err)
+    return res.status(500).end()
+  }
 })
 
 
