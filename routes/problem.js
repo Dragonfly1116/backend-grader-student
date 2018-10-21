@@ -293,23 +293,29 @@ router.post('/submission', getFileSource , async (req,res,next) => {
             isPass = false
             const submission = await Submit(name,email,'Compliation Error',
                 isPass,'-','-',result.compile_output,key)
-            console.log('User: ' + email + ' Complie Error Killing Process')
+            console.log('User: ' + email + ' Killing Process' + ' ' + result.status.description)
             return res.status(200).json(submission.sb)
         } else if (result.status.description === 'Time Limit Exceeded') {
             WorseTime = Math.max(Number(result.time),WorseTime)
             WorseMem = Math.max(result.memory,WorseMem)
-            console.log('User: ' + email + ' Time Limit Exceed')
+            console.log('User: ' + email + ' ' + result.status.description)
             isPass = false
             score += 'T'
+        } else if (result.status.description.split(" ")[0] === 'Runtime') {
+          WorseTime = Math.max(Number(result.time),WorseTime)
+          WorseMem = Math.max(result.memory,WorseMem)
+          console.log('User: ' + email + ' ' + result.status.description)
+          isPass = false
+          score += 'X'
         } else {
             WorseTime = Math.max(Number(result.time),WorseTime)
             WorseMem = Math.max(result.memory,WorseMem)
             if(result.status.description !== 'Accepted') {
                 isPass = false
-                console.log('User: ' + email + ' Wrong')
+                console.log('User: ' + email + ' ' + result.status.description)
                 score += '-'
             } else {
-                console.log('User: ' + email + ' Pass')
+                console.log('User: ' + email + ' ' + result.status.description)
               score += 'P'
             }
         }
